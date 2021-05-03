@@ -1,14 +1,9 @@
-import hashlib
 import os
 import json
-#import nest_asyncio
 import copy
 import logging
 import pandas as pd
 import numpy as np
-
-from dotenv import load_dotenv
-from datetime import datetime
 
 from pycarol import ApiKeyAuth, PwdAuth, PwdKeyAuth, Staging, DataModel, Query, CDSGolden
 from pycarol import Storage, Connectors, CarolAPI, Carol, CarolHandler
@@ -20,17 +15,14 @@ from pytechfin import Techfin
 from pytechfin import CarolSyncMonitoring
 from pytechfin.enums import EnumApps
 
-pd.set_option('display.max_rows', 500)
-pd.set_option('display.max_columns', 500)
-pd.set_option('display.min_rows', 100)
+from datetime import datetime
 
-if os.environ['ENV'] != 'DEV':
-    logger = logging.getLogger(__name__)
-    logger.setLevel(logging.DEBUG)
-    login = Carol()
-    carol = CarolHandler(login)
-    carol.setLevel(logging.INFO)
-    logger.addHandler(carol)
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+login = Carol()
+carol = CarolHandler(login)
+carol.setLevel(logging.INFO)
+logger.addHandler(carol)
 
 STATS_COLUMNS = [
     'tenant',
@@ -103,7 +95,7 @@ def datetime_logger(text, value=''):
         log = f'{str(datetime.today())} - {text}: {value}'
     else:
         log = f'{str(datetime.today())} - {text}'
-    return print(log)
+    return logger.info(log)
 
 def get_login(domain, org, carol_app, environment='carol.ai', login=False, pwd=False, apitoken=False):
     email = os.environ['CAROLUSER']
@@ -272,16 +264,14 @@ def data_decoration_stats():
     carol = get_login(domain='product', org='totvslabs', carol_app="datadecorationstats", apitoken=True)
     staging = Staging(carol)
     tenant_list = get_dd_tenants(carol)
-    tenant_list = ['tenante905725413a211eba0850a5864606b89']
 
     for tenant in tenant_list:
         datetime_logger('Tenant', tenant) 
-        login = get_login(domain=tenant, org='totvstechfin', carol_app="techfinplatform", pwd=True)
-        techfin_data = get_techfin_data(tenant)
-        for data_model in DATAMODEL_LIST:
-            sync_tenant_data(login, tenant, data_model, techfin_data, staging)
+        with carol.switch_context(env_name=tenant, org_name='totvstechfin', app_name="techfinplatform") as carol_tenant:
+            techfin_data = get_techfin_data(tenant)
+            for data_model in DATAMODEL_LIST:
+                sync_tenant_data(carol_tenant, tenant, data_model, techfin_data, staging)
     datetime_logger('End')                         
 
 if __name__ == '__main__':
-    load_dotenv(override=True, verbose=False)
     data_decoration_stats()
