@@ -12,12 +12,9 @@
           "en-US": "Carol Data Decoration Stats"
         },
         "instanceProperties": {
-          "environments": {
-            "WORKERS": "4",
-            "PROCESS_TYPE": "ALL"
-          },
           "properties": {
-            "dockerName": "data-decoration-stats"
+            "dockerName": "data-decoration-stats",
+            "flavor": "c1.medium"
           }
         },
         "name": "data_decoration_stats"
@@ -30,7 +27,7 @@
       "dockerTag": "0.0.1",
       "gitBranch": "master",
       "gitPath": "/",
-      "instanceType": "c1.small",
+      "instanceType": "c1.medium",
       "gitDockerfileName": "Dockerfile",
       "gitRepoUrl": "https://github.com/raphaelcartaxo/carol_data_decoration_stats.git"
     }

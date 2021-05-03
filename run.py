@@ -95,47 +95,7 @@ def datetime_logger(text, value=''):
         log = f'{str(datetime.today())} - {text}: {value}'
     else:
         log = f'{str(datetime.today())} - {text}'
-    return logger.info(log)
-
-def get_login(domain, org, carol_app, environment='carol.ai', login=False, pwd=False, apitoken=False):
-    email = os.environ['CAROLUSER']
-    password = os.environ['CAROLPWD']
-    connector_id = os.environ['CAROLCONNECTORID']
-    api_token = os.environ['APITOKEN']
-
-    if login:
-        func = Carol
-    else:
-        func = CarolAPI
-
-    if apitoken:
-      return func(domain, app_name=carol_app, connector_id=connector_id, auth=ApiKeyAuth(api_token), organization=org, )
-
-    login = func(domain, carol_app, auth=PwdAuth(email, password), organization=org, environment=environment)
-
-    if pwd:
-      return login
-
-    api_key = login.issue_api_key()
-    login = func(domain, app_name=carol_app, auth=ApiKeyAuth(api_key['X-Auth-Key']),
-                 connector_id=api_key['X-Auth-ConnectorId'], organization=org, )
-    
-    print(login.get_current())
-    return login
-
-def get_staging(carol, staging_name, connector_name='protheus_carol', max_workers=30, columns=None, max_hits=None, return_metadata=True, merge_records=False, file_pattern=None, callback=None):
-
-    df = carol.staging.fetch_parquet(
-        staging_name=staging_name,  
-        connector_name=connector_name, 
-        max_workers=max_workers, 
-        columns=columns, 
-        merge_records=merge_records, 
-        return_metadata=return_metadata, 
-        max_hits=max_hits,
-        callback=callback, file_pattern=file_pattern
-    )
-    return df
+    logger.info(log)
 
 def get_dm(carol, dm_name, max_workers=30, columns=None, max_hits=None, return_metadata=True, merge_records=False, file_pattern=None, callback=None):
 
@@ -261,7 +221,7 @@ def sync_tenant_data(login, tenant, data_model, techfin_data, staging):
 
 def data_decoration_stats():
     datetime_logger('Begin') 
-    carol = get_login(domain='product', org='totvslabs', carol_app="datadecorationstats", apitoken=True)
+    carol = CarolAPI()
     staging = Staging(carol)
     tenant_list = get_dd_tenants(carol)
 
