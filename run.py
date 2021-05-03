@@ -2,11 +2,12 @@ import os
 import json
 import copy
 import logging
+import sys
 import pandas as pd
 import numpy as np
 
 from pycarol import ApiKeyAuth, PwdAuth, PwdKeyAuth, Staging, DataModel, Query, CDSGolden
-from pycarol import Storage, Connectors, CarolAPI, Carol, CarolHandler
+from pycarol import Storage, Connectors, CarolAPI, Carol, CarolHandler, Apps
 from pycarol import CDSGolden, CDSStaging
 from pycarol.utils.miscellaneous import drop_duplicated_parquet
 from pycarol import _CAROL_METADATA_UNTIE_GOLDEN
@@ -23,6 +24,21 @@ login = Carol()
 carol = CarolHandler(login)
 carol.setLevel(logging.INFO)
 logger.addHandler(carol)
+
+app = Apps(login)
+settings = app.get_settings(app_name='datadecorationstats')
+os.environ['TECHFINCLIENTID'] = settings['techfinclientid']
+os.environ['TECHFINCLIENTSECRET'] = settings['techfinclientsecret']
+
+def handle_exception(exc_type, exc_value, exc_traceback):
+    if issubclass(exc_type, KeyboardInterrupt):
+        sys.__excepthook__(exc_type, exc_value, exc_traceback)
+        return
+    logger.critical("Uncaught exception", exc_info=(
+        exc_type, exc_value, exc_traceback))
+    excepthook(exc_type, exc_value, exc_traceback)
+
+sys.excepthook = handle_exception
 
 STATS_COLUMNS = [
     'tenant',
