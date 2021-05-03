@@ -1,0 +1,38 @@
+{
+  "batch": {
+    "processes": [
+      {
+        "algorithmDescription": {
+          "pt-BR": "Carol Data Decoration Stats",
+          "en-US": "Carol Data Decoration Stats"
+        },
+        "algorithmName": "data_decoration_stats",
+        "algorithmTitle": {
+          "pt-BR": "Carol Data Decoration Stats",
+          "en-US": "Carol Data Decoration Stats"
+        },
+        "instanceProperties": {
+          "environments": {
+            "WORKERS": "4",
+            "PROCESS_TYPE": "ALL"
+          },
+          "properties": {
+            "dockerName": "data-decoration-stats"
+          }
+        },
+        "name": "data_decoration_stats"
+      }
+    ]
+  },
+  "docker": [
+    {
+      "dockerName": "data-decoration-stats",
+      "dockerTag": "0.0.1",
+      "gitBranch": "master",
+      "gitPath": "/",
+      "instanceType": "c1.small",
+      "gitDockerfileName": "Dockerfile",
+      "gitRepoUrl": "https://github.com/raphaelcartaxo/carol_data_decoration_stats.git"
+    }
+  ]
+}

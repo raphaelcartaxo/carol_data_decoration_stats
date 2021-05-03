@@ -1,0 +1,4 @@
+pycarol
+python-dotenv
+websocket-client
+git+https://github.com/jnefoussi/pytechfin.git
