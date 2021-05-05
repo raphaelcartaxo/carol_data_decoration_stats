@@ -14,7 +14,7 @@
         "instanceProperties": {
           "properties": {
             "dockerName": "data-decoration-stats",
-            "flavor": "c1.medium"
+            "instanceType": "c1.medium"
           }
         },
         "name": "data_decoration_stats"

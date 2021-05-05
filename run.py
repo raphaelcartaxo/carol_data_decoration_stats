@@ -41,67 +41,67 @@ def handle_exception(exc_type, exc_value, exc_traceback):
 sys.excepthook = handle_exception
 
 STATS_COLUMNS = [
-    'tenant',
-    'data_model', 
-    'golden_records', 
-    'last_updated_golden_record', 
-    'rejected_records', 
-    'last_updated_rejected_record', 
-    'failed_lookup_records', 
-    'last_updated_failed_lookup_record', 
-    'techfin_records', 
-    'records_diff']
+  'tenant',
+  'data_model', 
+  'golden_records', 
+  'last_updated_golden_record', 
+  'rejected_records', 
+  'last_updated_rejected_record', 
+  'failed_lookup_records', 
+  'last_updated_failed_lookup_record', 
+  'techfin_records', 
+  'records_diff']
 
 KEY_MAP = {
-    'apinvoiceaccounting': 'invoiceaccounting_id',
-    'apinvoice': 'invoice_id',
-    'apinvoiceinstallment': 'invoiceinstallment_id',
-    'apinvoicepayments': 'invoicepayments_id',
-    'arinvoiceaccounting': 'invoiceaccounting_id',
-    'arinvoicebra': 'invoicebra_id',
-    'arinvoice': 'invoice_id',
-    'arinvoiceinstallment': 'invoiceinstallment_id',
-    'arinvoiceorigin': '_id',
-    'arinvoicepartner': 'invoicepartner_id',
-    'arinvoicepayments': 'invoicepayments_id',
-    'arpaymentstype': 'transactiontype_id',
-    'cfbankbalance': '_id',
-    'company': 'uuid',
-    'fndbankaccount': 'bankaccount_id',
-    'mdaccount': 'account_id',
-    'mdbankaccount': 'bank_id',
-    'mdbusinesspartnerdocreference': '_id',
-    'mdbusinesspartner': 'businesspartner_id',
-    'mdbusinesspartnergroup': 'businesspartnergroup_id',
-    'mdcostcenter': 'costcenter_id',
-    'mdcurrency': 'currency_id',
-    'mddocreference': 'docreference_id',
-    'mdfinancialcategory': 'financialcategoryid',
-    'organization': 'uuid'}
+  'apinvoiceaccounting': 'invoiceaccounting_id',
+  'apinvoice': 'invoice_id',
+  'apinvoiceinstallment': 'invoiceinstallment_id',
+  'apinvoicepayments': 'invoicepayments_id',
+  'arinvoiceaccounting': 'invoiceaccounting_id',
+  'arinvoicebra': 'invoicebra_id',
+  'arinvoice': 'invoice_id',
+  'arinvoiceinstallment': 'invoiceinstallment_id',
+  'arinvoiceorigin': '_id',
+  'arinvoicepartner': 'invoicepartner_id',
+  'arinvoicepayments': 'invoicepayments_id',
+  'arpaymentstype': 'transactiontype_id',
+  'cfbankbalance': '_id',
+  'company': 'uuid',
+  'fndbankaccount': 'bankaccount_id',
+  'mdaccount': 'account_id',
+  'mdbankaccount': 'bank_id',
+  'mdbusinesspartnerdocreference': '_id',
+  'mdbusinesspartner': 'businesspartner_id',
+  'mdbusinesspartnergroup': 'businesspartnergroup_id',
+  'mdcostcenter': 'costcenter_id',
+  'mdcurrency': 'currency_id',
+  'mddocreference': 'docreference_id',
+  'mdfinancialcategory': 'financialcategoryid',
+  'organization': 'uuid'}
 
 DATA_MODEL_MAP = {
-    "fndHierarchyOrganization" : "company" , 
-    "fndOrganizations" : "organization" , 
-    "mdCurrencies" : "mdcurrency" ,
-    "mdCostCenters" : "mdcostcenter" , 
-    "mdAccounts" : "mdaccount" ,        
-    "mdBankAccounts" : "mdbankaccount" ,  
-    "mdBankAccountsBRA" : "fndbankaccount" ,       
-    "cfBankBalances" : "cfbankbalance" ,
-    "mdPaymentTypes" : "arpaymentstype",   
-    "mdFinancialCategories" : "mdfinancialcategory" ,       
-    "mdBusinessPartnerGroups" : "mdbusinesspartnergroup" , 
-    "mdBusinessPartners" : "mdbusinesspartner" ,     
-    "mdDocReferences" : "mddocreference" , 
-    "mdBusinessPartnerDocReferences" : "mdbusinesspartnerdocreference" , 
-    "arInvoices" : "arinvoice" , 
-    "arInvoiceInstallments" : "arinvoiceinstallment" , 
-    "arInvoicePayments" : "arinvoicepayments" , 
-    "arInvoiceAccountings" : "arinvoiceaccounting" , 
-    "apInvoices" : "apinvoice" , 
-    "apInvoiceInstallments" : "apinvoiceinstallment" ,     
-    "apInvoicePayments" : "apinvoicepayments" , 
-    "apInvoiceAccountings" : "apinvoiceaccounting"}
+  "fndHierarchyOrganization" : "company" , 
+  "fndOrganizations" : "organization" , 
+  "mdCurrencies" : "mdcurrency" ,
+  "mdCostCenters" : "mdcostcenter" , 
+  "mdAccounts" : "mdaccount" ,        
+  "mdBankAccounts" : "mdbankaccount" ,  
+  "mdBankAccountsBRA" : "fndbankaccount" ,       
+  "cfBankBalances" : "cfbankbalance" ,
+  "mdPaymentTypes" : "arpaymentstype",   
+  "mdFinancialCategories" : "mdfinancialcategory" ,       
+  "mdBusinessPartnerGroups" : "mdbusinesspartnergroup" , 
+  "mdBusinessPartners" : "mdbusinesspartner" ,     
+  "mdDocReferences" : "mddocreference" , 
+  "mdBusinessPartnerDocReferences" : "mdbusinesspartnerdocreference" , 
+  "arInvoices" : "arinvoice" , 
+  "arInvoiceInstallments" : "arinvoiceinstallment" , 
+  "arInvoicePayments" : "arinvoicepayments" , 
+  "arInvoiceAccountings" : "arinvoiceaccounting" , 
+  "apInvoices" : "apinvoice" , 
+  "apInvoiceInstallments" : "apinvoiceinstallment" ,     
+  "apInvoicePayments" : "apinvoicepayments" , 
+  "apInvoiceAccountings" : "apinvoiceaccounting"}
 
 DATAMODEL_LIST = list(DATA_MODEL_MAP.values())
 
@@ -116,20 +116,20 @@ def datetime_logger(text, value=''):
 def get_dm(carol, dm_name, max_workers=30, columns=None, max_hits=None, return_metadata=True, merge_records=False, file_pattern=None, callback=None):
 
     df = carol.datamodel.fetch_parquet(
-        dm_name=dm_name, 
-        return_metadata=return_metadata, merge_records=merge_records, 
-        max_workers=max_workers,
-        max_hits=max_hits, columns=columns, 
-        file_pattern=file_pattern, 
+      dm_name=dm_name, 
+      return_metadata=return_metadata, merge_records=merge_records, 
+      max_workers=max_workers,
+      max_hits=max_hits, columns=columns, 
+      file_pattern=file_pattern 
     )
     return df
 
 def get_rejected(carol, dm_name, max_hits=0, max_workers=30, file_pattern=None, remove_duplicates=True, staging_record=True, debug=False):
     df = carol.datamodel.fetch_rejected(
-        dm_name=dm_name, 
-        max_workers=max_workers,
-        max_hits=max_hits, 
-        file_pattern=file_pattern
+      dm_name=dm_name, 
+      max_workers=max_workers,
+      max_hits=max_hits, 
+      file_pattern=file_pattern
     )
 
     if df.empty:
@@ -209,15 +209,15 @@ def get_data_model_data(login, tenant, data_model, techfin_data):
     records_diff = golden_records - techfin_records
 
     data_model_data.append([tenant, 
-                        data_model, 
-                        golden_records, 
-                        last_updated_golden_record, 
-                        rejected_records, 
-                        last_updated_rejected_record, 
-                        failed_lookup_records, 
-                        last_updated_failed_lookup_record, 
-                        techfin_records,
-                        records_diff])
+                            data_model, 
+                            golden_records, 
+                            last_updated_golden_record, 
+                            rejected_records, 
+                            last_updated_rejected_record, 
+                            failed_lookup_records, 
+                            last_updated_failed_lookup_record, 
+                            techfin_records,
+                            records_diff])
 
     df = pd.DataFrame(data_model_data, columns=STATS_COLUMNS)
     return df
