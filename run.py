@@ -171,6 +171,16 @@ def get_dd_tenants(carol):
                                 (tenant_list.datadecoratio.fillna(False))]['tenantname'])
   return tenant_list
 
+def get_dd_tenants_with_filter(carol):
+  tenant_list = get_dd_tenants(carol)
+  try:
+    filtered_tenants = set(list([settings['caroltenantfilter']]))
+    if len(filtered_tenants):
+      tenant_list = tenant_list - (tenant_list - filtered_tenants)
+  except Exception as error:
+      datetime_logger('get_dd_tenants_with_filter - error', repr(error))
+  return tenant_list
+
 def get_techfin_data(tenant):
   tf = Techfin()
   dms_techfin = CarolSyncMonitoring(tf)
@@ -239,7 +249,7 @@ def data_decoration_stats():
     datetime_logger('Begin') 
     carol = CarolAPI()
     staging = Staging(carol)
-    tenant_list = get_dd_tenants(carol)
+    tenant_list = get_dd_tenants_with_filter(carol)
 
     for tenant in tenant_list:
         datetime_logger('Tenant', tenant) 
