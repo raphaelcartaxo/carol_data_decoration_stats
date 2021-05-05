@@ -179,7 +179,7 @@ def get_dd_tenants_with_filter(carol):
     if len(filtered_tenant_list) == 0:
       datetime_logger('all tenants in the settings are invalid')   
     else:
-      invalid_tenant_list = filtered_tenant_list - filtered_tenants
+      invalid_tenant_list = filtered_tenant_list - filtered_tenant
       if len(invalid_tenant_list > 0):
         datetime_logger('invalid tenants', invalid_tenant_list) 
       tenant_list = filtered_tenant_list 
