@@ -174,9 +174,15 @@ def get_dd_tenants(carol):
 def get_dd_tenants_with_filter(carol):
   tenant_list = get_dd_tenants(carol)
   if settings['caroltenantfilter'] is not None:
-    filtered_tenants = set(settings['caroltenantfilter'].split(','))
-    tenant_list = filtered_tenants.intersection(tenant_list)
-    datetime_logger('get_dd_tenants_with_filter', tenant_list - filtered_tenants)   
+    filtered_tenant = set(settings['caroltenantfilter'].split(','))
+    filtered_tenant_list = filtered_tenant.intersection(tenant_list)
+    if len(filtered_tenant_list) == 0:
+      datetime_logger('all tenants in the settings are invalid')   
+    else:
+      invalid_tenant_list = filtered_tenant_list - filtered_tenants
+      if len(invalid_tenant_list > 0):
+        datetime_logger('invalid tenants', invalid_tenant_list) 
+      tenant_list = filtered_tenant_list 
   return tenant_list
 
 def get_techfin_data(tenant):
@@ -247,7 +253,7 @@ def data_decoration_stats():
     datetime_logger('Begin') 
     carol = CarolAPI()
     staging = Staging(carol)
-    tenant_list = get_dd_tenants(carol)
+    tenant_list = get_dd_tenants_with_filter(carol)
 
     for tenant in tenant_list:
         datetime_logger('Tenant', tenant) 
