@@ -173,12 +173,10 @@ def get_dd_tenants(carol):
 
 def get_dd_tenants_with_filter(carol):
   tenant_list = get_dd_tenants(carol)
-  try:
-    filtered_tenants = set(list([settings['caroltenantfilter']]))
-    if len(filtered_tenants):
-      tenant_list = tenant_list - (tenant_list - filtered_tenants)
-  except Exception as error:
-      datetime_logger('get_dd_tenants_with_filter - error', repr(error))
+  if settings['caroltenantfilter'] is not None:
+    filtered_tenants = set(settings['caroltenantfilter'].split(','))
+    tenant_list = filtered_tenants.intersection(tenant_list)
+    datetime_logger('get_dd_tenants_with_filter', tenant_list - filtered_tenants)   
   return tenant_list
 
 def get_techfin_data(tenant):
@@ -249,7 +247,7 @@ def data_decoration_stats():
     datetime_logger('Begin') 
     carol = CarolAPI()
     staging = Staging(carol)
-    tenant_list = get_dd_tenants_with_filter(carol)
+    tenant_list = get_dd_tenants(carol)
 
     for tenant in tenant_list:
         datetime_logger('Tenant', tenant) 
