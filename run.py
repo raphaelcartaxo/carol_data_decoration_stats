@@ -173,6 +173,7 @@ def get_filter(setting):
   filter = None
   if setting != '':
     filter = set(setting.split(','))
+  datetime_logger('carol setting',filter)  
   return filter
 
 def get_techfin_data(tenant):
@@ -250,11 +251,14 @@ def data_decoration_stats():
     for tenant in tenant_list.itertuples(index=False):
         if (carolorgfilter is None) or (len(carolorgfilter) > 0) and (tenant.orgname in carolorgfilter):
           if (caroltenantfilter is None) or (len(caroltenantfilter) > 0) and (tenant.tenantname in caroltenantfilter):
-            datetime_logger('org/tenant', f'{tenant.orgname}/{tenant.tenantname}') 
-            with carol.switch_context(env_name=tenant.tenantname, org_name=tenant.orgname, app_name="techfinplatform") as carol_tenant:
-                techfin_data = get_techfin_data(tenant.tenantname)
-                for data_model in DATAMODEL_LIST:
-                    sync_tenant_data(carol_tenant, tenant, data_model, techfin_data, staging)
+            datetime_logger('org/tenant', f'{tenant.orgname}/{tenant.tenantname}')
+            try:
+              with carol.switch_context(env_name=tenant.tenantname, org_name=tenant.orgname, app_name="techfinplatform") as carol_tenant:
+                  techfin_data = get_techfin_data(tenant.tenantname)
+                  for data_model in DATAMODEL_LIST:
+                      sync_tenant_data(carol_tenant, tenant.tenantname, data_model, techfin_data, staging)
+            except Exception as error:
+              datetime_logger('sync_tenant_data_error', repr(error))        
     datetime_logger('End')                         
 
 if __name__ == '__main__':
