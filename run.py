@@ -166,24 +166,14 @@ def get_rejected(carol, dm_name, max_hits=0, max_workers=30, file_pattern=None, 
 
 def get_dd_tenants(carol):
   tenant_list = get_dm(carol, 'caroltenant')
-  tenant_list = set(tenant_list[(tenant_list.tenantname.str.contains('tenant')) & 
-                                (tenant_list.orgname == 'totvstechfin') &
-                                (tenant_list.datadecoratio.fillna(False))]['tenantname'])
-  return tenant_list
+  tenant_list = tenant_list[(tenant_list.datadecoratio.fillna(False))][['orgname','tenantname']]
+  return tenant_list.drop_duplicates(subset=['orgname','tenantname']).sort_values(['orgname','tenantname'])
 
-def get_dd_tenants_with_filter(carol):
-  tenant_list = get_dd_tenants(carol)
-  if settings['caroltenantfilter'] is not None:
-    filtered_tenant = set(settings['caroltenantfilter'].split(','))
-    filtered_tenant_list = filtered_tenant.intersection(tenant_list)
-    if len(filtered_tenant_list) == 0:
-      datetime_logger('all tenants in the settings are invalid')   
-    else:
-      invalid_tenant_list = filtered_tenant_list - filtered_tenant
-      if len(invalid_tenant_list) > 0:
-        datetime_logger('invalid tenants', invalid_tenant_list) 
-      tenant_list = filtered_tenant_list 
-  return tenant_list
+def get_filter(setting):
+  filter = None
+  if setting != '':
+    filter = set(setting.split(','))
+  return filter
 
 def get_techfin_data(tenant):
   tf = Techfin()
@@ -253,14 +243,18 @@ def data_decoration_stats():
     datetime_logger('Begin') 
     carol = CarolAPI()
     staging = Staging(carol)
-    tenant_list = get_dd_tenants_with_filter(carol)
+    tenant_list = get_dd_tenants(carol)
+    carolorgfilter = get_filter(settings['carolorgfilter'])
+    caroltenantfilter = get_filter(settings['caroltenantfilter'])
 
-    for tenant in tenant_list:
-        datetime_logger('Tenant', tenant) 
-        with carol.switch_context(env_name=tenant, org_name='totvstechfin', app_name="techfinplatform") as carol_tenant:
-            techfin_data = get_techfin_data(tenant)
-            for data_model in DATAMODEL_LIST:
-                sync_tenant_data(carol_tenant, tenant, data_model, techfin_data, staging)
+    for tenant in tenant_list.itertuples(index=False):
+        if (carolorgfilter is None) or (len(carolorgfilter) > 0) and (tenant.orgname in carolorgfilter):
+          if (caroltenantfilter is None) or (len(caroltenantfilter) > 0) and (tenant.tenantname in caroltenantfilter):
+            datetime_logger('org/tenant', f'{tenant.orgname}/{tenant.tenantname}') 
+            with carol.switch_context(env_name=tenant.tenantname, org_name=tenant.orgname, app_name="techfinplatform") as carol_tenant:
+                techfin_data = get_techfin_data(tenant.tenantname)
+                for data_model in DATAMODEL_LIST:
+                    sync_tenant_data(carol_tenant, tenant, data_model, techfin_data, staging)
     datetime_logger('End')                         
 
 if __name__ == '__main__':
