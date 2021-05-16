@@ -111,10 +111,12 @@ DATAMODEL_LIST = list(DATA_MODEL_MAP.values())
 
 
 def get_subscription_id(carol, data_model):
+    subscription_id = 'no data subscription'
     dm_id = carol.datamodel.get_by_name(data_model)['mdmId']
-    subscription = carol.call_api(
-        f'v3/subscription/template/{dm_id}', method='GET')
-    return subscription[0]['mdmId']
+    subscription = carol.call_api(f'v3/subscription/template/{dm_id}', method='GET')
+    if len(subscription) > 0:
+        subscription_id = subscription[0]['mdmId']
+    return subscription_id   
 
 
 def datetime_logger(text, value=''):
