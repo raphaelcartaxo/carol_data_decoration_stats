@@ -107,7 +107,7 @@ DATA_MODEL_MAP = {
     "apInvoicePayments": "apinvoicepayments",
     "apInvoiceAccountings": "apinvoiceaccounting"}
 
-DATAMODEL_LIST = list(DATA_MODEL_MAP.values())
+DATAMODEL_LIST = sorted(list(DATA_MODEL_MAP.values()), reverse=True)
 
 
 def get_subscription_id(carol, data_model):
@@ -209,8 +209,7 @@ def get_techfin_data(org, tenant):
     return techfin_data
 
 
-def get_data_model_data(login, tenant, data_model, techfin_data, stats_last_hours):
-    datetime_logger('Data Model', data_model)
+def get_data_model_data(login, tenant, data_model, techfin_data, stats_last_hours=0, stats_trace_log=False):
     data_model_data = []
     golden_records = 0
     last_updated_golden_record = ''
@@ -226,10 +225,12 @@ def get_data_model_data(login, tenant, data_model, techfin_data, stats_last_hour
     golden_data = get_dm(login, data_model, columns=['mdmId', 'mdmLastUpdated'])
     golden_records = golden_data.mdmId.nunique()
     last_updated_golden_record = golden_data.mdmLastUpdated.max()
-    datetime_logger('1|golden_data')
+    if stats_trace_log:
+        datetime_logger('golden_data', str(golden_records))
 
     subscription_id = get_subscription_id(login, data_model)
-    datetime_logger('2|subscription_id')   
+    if stats_trace_log:
+        datetime_logger('subscription_id', subscription_id)   
 
     rejected_data = get_rejected(login, data_model, remove_duplicates=True, staging_record=False)
     rejected_records = rejected_data.shape[0]
@@ -240,19 +241,24 @@ def get_data_model_data(login, tenant, data_model, techfin_data, stats_last_hour
             failed_lookup_records = failed_lookup_data.shape[0]
             if (failed_lookup_records > 0):
                 last_updated_failed_lookup_record = failed_lookup_data.mdmLastUpdated.max()
-        datetime_logger('3|rejected_data')        
+        if stats_trace_log:        
+            datetime_logger('rejected_data', str(rejected_records))
+            datetime_logger('failed_lookup_records', str(failed_lookup_records))        
 
     if len(techfin_data) > 0:
         techfin_records = techfin_data.get(data_model, 0)
         records_diff = golden_records - techfin_records
-        datetime_logger('4|records_diff')
+        if stats_trace_log:
+            datetime_logger('techfin_records', str(techfin_records))
+            datetime_logger('records_diff', str(records_diff))
 
     if stats_last_hours < 0:
         filtered_data = golden_data[pd.to_datetime(
             golden_data['mdmStagingCounter']/1000, unit='ms') >= (datetime.utcnow() - timedelta(hours=stats_last_hours))]
         golden_record_stats = str((pd.to_datetime(filtered_data['mdmCounterForEntity']/1000, unit='ms') - pd.to_datetime(
             filtered_data['mdmStagingCounter']/1000, unit='ms')).describe().fillna(0)['mean'])
-        datetime_logger('5|golden_record_stats')         
+        if stats_trace_log:    
+            datetime_logger('golden_record_stats', str(golden_record_stats))         
 
     data_model_data.append([tenant,
                             data_model,
@@ -286,9 +292,10 @@ def sync_tenant_data(carol, data_model_data):
 
 
 def data_decoration_stats():
-    datetime_logger('Begin')
+    datetime_logger('begin')
     carol = CarolAPI()
     tenant_list = get_dd_tenants(carol)
+    dm_counter = 1
 
     carolorgfilter = get_filter(settings['carolorgfilter'])
     datetime_logger('carolorgfilter', carolorgfilter)
@@ -296,20 +303,24 @@ def data_decoration_stats():
     datetime_logger('caroltenantfilter', caroltenantfilter)
     stats_last_hours = settings['goldenrecordstatslasthours']
     datetime_logger('goldenrecordstatslasthours', str(stats_last_hours))
+    statstracelog = settings['statstracelog']
+    datetime_logger('statstracelog', str(statstracelog))
 
     for tenant in tenant_list.itertuples(index=False):
         if (carolorgfilter is None) or (len(carolorgfilter) > 0) and (tenant.orgname in carolorgfilter):
             if (caroltenantfilter is None) or (len(caroltenantfilter) > 0) and (tenant.tenantname in caroltenantfilter):
-                datetime_logger(
-                    'org/tenant', f'{tenant.orgname}/{tenant.tenantname}')
+                datetime_logger('org/tenant', f'{tenant.orgname}/{tenant.tenantname}')
                 with carol.switch_context(env_name=tenant.tenantname, org_name=tenant.orgname, app_name="techfinplatform") as carol_tenant:
                     techfin_data = get_techfin_data(
                         tenant.orgname, tenant.tenantname)
+                    dm_counter = 1    
                     for data_model in DATAMODEL_LIST:
+                        datetime_logger(f'{dm_counter} - {data_model}')
                         data_model_data = get_data_model_data(
-                            carol_tenant, tenant.tenantname, data_model, techfin_data, stats_last_hours)
+                            carol_tenant, tenant.tenantname, data_model, techfin_data, stats_last_hours, statstracelog)
                         sync_tenant_data(carol, data_model_data)
-    datetime_logger('End')
+                        dm_counter += 1
+    datetime_logger('end')
 
 
 if __name__ == '__main__':
