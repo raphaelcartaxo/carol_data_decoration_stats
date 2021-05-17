@@ -194,7 +194,6 @@ def get_filter(setting):
     filter = None
     if setting != '':
         filter = set(setting.split(','))
-    datetime_logger('carol setting', filter)
     return filter
 
 
@@ -222,33 +221,38 @@ def get_data_model_data(login, tenant, data_model, techfin_data, stats_last_hour
     techfin_records = 0
     records_diff = 0
     subscription_id = ''
+    golden_record_stats = ''
 
-    golden_data = get_dm(login, data_model)
+    golden_data = get_dm(login, data_model, columns=['mdmId', 'mdmLastUpdated'])
     golden_records = golden_data.mdmId.nunique()
     last_updated_golden_record = golden_data.mdmLastUpdated.max()
+    datetime_logger('1|golden_data')
 
     subscription_id = get_subscription_id(login, data_model)
+    datetime_logger('2|subscription_id')   
 
-    filtered_data = golden_data[pd.to_datetime(
-        golden_data['mdmStagingCounter']/1000, unit='ms') >= (datetime.utcnow() - timedelta(hours=stats_last_hours))]
-    golden_record_stats = str((pd.to_datetime(filtered_data['mdmCounterForEntity']/1000, unit='ms') - pd.to_datetime(
-        filtered_data['mdmStagingCounter']/1000, unit='ms')).describe().fillna(0)['mean'])
-
-    rejected_data = get_rejected(
-        login, data_model, remove_duplicates=True, staging_record=False)
+    rejected_data = get_rejected(login, data_model, remove_duplicates=True, staging_record=False)
     rejected_records = rejected_data.shape[0]
     if (rejected_records > 0):
         last_updated_rejected_record = rejected_data.mdmLastUpdated.max()
-
-    if (rejected_records > 0) and ('mdmSourceType' in rejected_data.columns):
-        failed_lookup_data = rejected_data[rejected_data.mdmSourceType == 'DECORATION']
-        failed_lookup_records = failed_lookup_data.shape[0]
-        if (failed_lookup_records > 0):
-            last_updated_failed_lookup_record = failed_lookup_data.mdmLastUpdated.max()
+        if (rejected_records > 0) and ('mdmSourceType' in rejected_data.columns):
+            failed_lookup_data = rejected_data[rejected_data.mdmSourceType == 'DECORATION']
+            failed_lookup_records = failed_lookup_data.shape[0]
+            if (failed_lookup_records > 0):
+                last_updated_failed_lookup_record = failed_lookup_data.mdmLastUpdated.max()
+        datetime_logger('3|rejected_data')        
 
     if len(techfin_data) > 0:
         techfin_records = techfin_data.get(data_model, 0)
         records_diff = golden_records - techfin_records
+        datetime_logger('4|records_diff')
+
+    if stats_last_hours < 0:
+        filtered_data = golden_data[pd.to_datetime(
+            golden_data['mdmStagingCounter']/1000, unit='ms') >= (datetime.utcnow() - timedelta(hours=stats_last_hours))]
+        golden_record_stats = str((pd.to_datetime(filtered_data['mdmCounterForEntity']/1000, unit='ms') - pd.to_datetime(
+            filtered_data['mdmStagingCounter']/1000, unit='ms')).describe().fillna(0)['mean'])
+        datetime_logger('5|golden_record_stats')         
 
     data_model_data.append([tenant,
                             data_model,
@@ -285,9 +289,13 @@ def data_decoration_stats():
     datetime_logger('Begin')
     carol = CarolAPI()
     tenant_list = get_dd_tenants(carol)
+
     carolorgfilter = get_filter(settings['carolorgfilter'])
+    datetime_logger('carolorgfilter', carolorgfilter)
     caroltenantfilter = get_filter(settings['caroltenantfilter'])
+    datetime_logger('caroltenantfilter', caroltenantfilter)
     stats_last_hours = settings['goldenrecordstatslasthours']
+    datetime_logger('goldenrecordstatslasthours', str(stats_last_hours))
 
     for tenant in tenant_list.itertuples(index=False):
         if (carolorgfilter is None) or (len(carolorgfilter) > 0) and (tenant.orgname in carolorgfilter):
