@@ -185,8 +185,7 @@ def get_rejected(carol, dm_name, max_hits=0, max_workers=30, file_pattern=None, 
 
 def get_dd_tenants(carol):
     tenant_list = get_dm(carol, 'caroltenant')
-    tenant_list = tenant_list[(tenant_list.datadecoratio.fillna(False))][[
-        'orgname', 'tenantname']]
+    tenant_list = tenant_list[(tenant_list.datadecoratio.fillna(False))][['orgname', 'tenantname']]
     return tenant_list.drop_duplicates(subset=['orgname', 'tenantname']).sort_values(['orgname', 'tenantname'])
 
 
@@ -209,7 +208,7 @@ def get_techfin_data(org, tenant):
     return techfin_data
 
 
-def get_data_model_data(login, tenant, data_model, techfin_data, stats_last_hours=0, stats_trace_log=False):
+def get_data_model_data(login, tenant, data_model, techfin_data, ignorerejectedrecords=False, stats_last_hours=0, stats_trace_log=False):
     data_model_data = []
     golden_records = 0
     last_updated_golden_record = ''
@@ -232,18 +231,22 @@ def get_data_model_data(login, tenant, data_model, techfin_data, stats_last_hour
     if stats_trace_log:
         datetime_logger('subscription_id', subscription_id)   
 
-    rejected_data = get_rejected(login, data_model, remove_duplicates=True, staging_record=False)
-    rejected_records = rejected_data.shape[0]
-    if (rejected_records > 0):
-        last_updated_rejected_record = rejected_data.mdmLastUpdated.max()
-        if (rejected_records > 0) and ('mdmSourceType' in rejected_data.columns):
-            failed_lookup_data = rejected_data[rejected_data.mdmSourceType == 'DECORATION']
-            failed_lookup_records = failed_lookup_data.shape[0]
-            if (failed_lookup_records > 0):
-                last_updated_failed_lookup_record = failed_lookup_data.mdmLastUpdated.max()
-        if stats_trace_log:        
-            datetime_logger('rejected_data', str(rejected_records))
-            datetime_logger('failed_lookup_records', str(failed_lookup_records))        
+    if not(ignorerejectedrecords):
+        rejected_data = get_rejected(login, data_model, remove_duplicates=True, staging_record=False)
+        rejected_records = rejected_data.shape[0]
+        if (rejected_records > 0):
+            last_updated_rejected_record = rejected_data.mdmLastUpdated.max()
+            if (rejected_records > 0) and ('mdmSourceType' in rejected_data.columns):
+                failed_lookup_data = rejected_data[rejected_data.mdmSourceType == 'DECORATION']
+                failed_lookup_records = failed_lookup_data.shape[0]
+                if (failed_lookup_records > 0):
+                    last_updated_failed_lookup_record = failed_lookup_data.mdmLastUpdated.max()
+            if stats_trace_log:        
+                datetime_logger('rejected_data', str(rejected_records))
+                datetime_logger('failed_lookup_records', str(failed_lookup_records))
+    else:
+        rejected_records = -1
+        datetime_logger('rejected_data', str(rejected_records))
 
     if len(techfin_data) > 0:
         techfin_records = techfin_data.get(data_model, 0)
@@ -305,6 +308,8 @@ def data_decoration_stats():
     datetime_logger('goldenrecordstatslasthours', str(stats_last_hours))
     statstracelog = settings['statstracelog']
     datetime_logger('statstracelog', str(statstracelog))
+    ignorerejectedrecords = settings['ignorerejectedrecords']
+    datetime_logger('ignorerejectedrecords', str(ignorerejectedrecords))    
 
     for tenant in tenant_list.itertuples(index=False):
         if (carolorgfilter is None) or (len(carolorgfilter) > 0) and (tenant.orgname in carolorgfilter):
@@ -317,7 +322,7 @@ def data_decoration_stats():
                     for data_model in DATAMODEL_LIST:
                         datetime_logger(f'{dm_counter} - {data_model}')
                         data_model_data = get_data_model_data(
-                            carol_tenant, tenant.tenantname, data_model, techfin_data, stats_last_hours, statstracelog)
+                            carol_tenant, tenant.tenantname, data_model, techfin_data, ignorerejectedrecords, stats_last_hours, statstracelog)
                         sync_tenant_data(carol, data_model_data)
                         dm_counter += 1
     datetime_logger('end')
