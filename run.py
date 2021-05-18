@@ -302,12 +302,16 @@ def data_decoration_stats():
     datetime_logger('begin')
     carol = CarolAPI()
     tenant_list = get_dd_tenants(carol)
+    tenant_counter = 1
     dm_counter = 1
 
     carolorgfilter = get_filter(settings['carolorgfilter'])
     datetime_logger('carolorgfilter', carolorgfilter)
     caroltenantfilter = get_filter(settings['caroltenantfilter'])
     datetime_logger('caroltenantfilter', caroltenantfilter)
+    datamodelfilter = get_filter(settings['datamodelfilter'])
+    datetime_logger('datamodelfilter', datamodelfilter)
+
     stats_last_hours = settings['goldenrecordstatslasthours']
     datetime_logger('goldenrecordstatslasthours', str(stats_last_hours))
     statstracelog = settings['statstracelog']
@@ -318,18 +322,19 @@ def data_decoration_stats():
     for tenant in tenant_list.itertuples(index=False):
         if (carolorgfilter is None) or (len(carolorgfilter) > 0) and (tenant.orgname in carolorgfilter):
             if (caroltenantfilter is None) or (len(caroltenantfilter) > 0) and (tenant.tenantname in caroltenantfilter):
-                datetime_logger(
-                    'org/tenant', f'{tenant.orgname}/{tenant.tenantname}')
+                datetime_logger(f'{tenant_counter} | {tenant.orgname} | {tenant.tenantname}')
                 with carol.switch_context(env_name=tenant.tenantname, org_name=tenant.orgname, app_name="techfinplatform") as carol_tenant:
                     techfin_data = get_techfin_data(
                         tenant.orgname, tenant.tenantname)
                     dm_counter = 1
                     for data_model in DATAMODEL_LIST:
-                        datetime_logger(f'{dm_counter} - {data_model}')
-                        data_model_data = get_data_model_data(
-                            carol_tenant, tenant.tenantname, data_model, techfin_data, ignorerejectedrecords, stats_last_hours, statstracelog)
-                        sync_tenant_data(carol, data_model_data)
-                        dm_counter += 1
+                        if (datamodelfilter is None) or (len(datamodelfilter) > 0) and (data_model in datamodelfilter):
+                            datetime_logger(f'{dm_counter} | {data_model}')
+                            data_model_data = get_data_model_data(
+                                carol_tenant, tenant.tenantname, data_model, techfin_data, ignorerejectedrecords, stats_last_hours, statstracelog)
+                            sync_tenant_data(carol, data_model_data)
+                            dm_counter += 1
+                tenant_counter += 1            
     datetime_logger('end')
 
 
