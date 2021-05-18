@@ -113,10 +113,11 @@ DATAMODEL_LIST = sorted(list(DATA_MODEL_MAP.values()), reverse=True)
 def get_subscription_id(carol, data_model):
     subscription_id = 'no data subscription'
     dm_id = carol.datamodel.get_by_name(data_model)['mdmId']
-    subscription = carol.call_api(f'v3/subscription/template/{dm_id}', method='GET')
+    subscription = carol.call_api(
+        f'v3/subscription/template/{dm_id}', method='GET')
     if len(subscription) > 0:
         subscription_id = subscription[0]['mdmId']
-    return subscription_id   
+    return subscription_id
 
 
 def datetime_logger(text, value=''):
@@ -128,7 +129,7 @@ def datetime_logger(text, value=''):
     logger.info(log)
 
 
-def get_dm(carol, dm_name, max_workers=30, columns=None, max_hits=None, return_metadata=True, merge_records=False, file_pattern=None, callback=None):
+def get_dm(carol, dm_name, max_workers=30, columns=None, max_hits=None, return_metadata=True, merge_records=True, file_pattern=None, callback=None):
 
     df = carol.datamodel.fetch_parquet(
         dm_name=dm_name,
@@ -140,7 +141,7 @@ def get_dm(carol, dm_name, max_workers=30, columns=None, max_hits=None, return_m
     return df
 
 
-def get_rejected(carol, dm_name, max_hits=0, max_workers=30, file_pattern=None, remove_duplicates=True, staging_record=True, debug=False):
+def get_rejected(carol, dm_name, max_hits=None, max_workers=30, file_pattern=None, remove_duplicates=True, staging_record=False, debug=False):
     df = carol.datamodel.fetch_rejected(
         dm_name=dm_name,
         max_workers=max_workers,
@@ -185,7 +186,8 @@ def get_rejected(carol, dm_name, max_hits=0, max_workers=30, file_pattern=None, 
 
 def get_dd_tenants(carol):
     tenant_list = get_dm(carol, 'caroltenant')
-    tenant_list = tenant_list[(tenant_list.datadecoratio.fillna(False))][['orgname', 'tenantname']]
+    tenant_list = tenant_list[(tenant_list.datadecoratio.fillna(False))][[
+        'orgname', 'tenantname']]
     return tenant_list.drop_duplicates(subset=['orgname', 'tenantname']).sort_values(['orgname', 'tenantname'])
 
 
@@ -221,7 +223,8 @@ def get_data_model_data(login, tenant, data_model, techfin_data, ignorerejectedr
     subscription_id = ''
     golden_record_stats = ''
 
-    golden_data = get_dm(login, data_model, columns=['mdmId', 'mdmLastUpdated'])
+    golden_data = get_dm(login, data_model, columns=[
+                         'mdmId', 'mdmLastUpdated'])
     golden_records = golden_data.mdmId.nunique()
     last_updated_golden_record = golden_data.mdmLastUpdated.max()
     if stats_trace_log:
@@ -229,10 +232,10 @@ def get_data_model_data(login, tenant, data_model, techfin_data, ignorerejectedr
 
     subscription_id = get_subscription_id(login, data_model)
     if stats_trace_log:
-        datetime_logger('subscription_id', subscription_id)   
+        datetime_logger('subscription_id', subscription_id)
 
     if not(ignorerejectedrecords):
-        rejected_data = get_rejected(login, data_model, remove_duplicates=True, staging_record=False)
+        rejected_data = get_rejected(login, data_model)
         rejected_records = rejected_data.shape[0]
         if (rejected_records > 0):
             last_updated_rejected_record = rejected_data.mdmLastUpdated.max()
@@ -241,9 +244,10 @@ def get_data_model_data(login, tenant, data_model, techfin_data, ignorerejectedr
                 failed_lookup_records = failed_lookup_data.shape[0]
                 if (failed_lookup_records > 0):
                     last_updated_failed_lookup_record = failed_lookup_data.mdmLastUpdated.max()
-            if stats_trace_log:        
+            if stats_trace_log:
                 datetime_logger('rejected_data', str(rejected_records))
-                datetime_logger('failed_lookup_records', str(failed_lookup_records))
+                datetime_logger('failed_lookup_records',
+                                str(failed_lookup_records))
     else:
         rejected_records = -1
         datetime_logger('rejected_data', str(rejected_records))
@@ -260,8 +264,8 @@ def get_data_model_data(login, tenant, data_model, techfin_data, ignorerejectedr
             golden_data['mdmStagingCounter']/1000, unit='ms') >= (datetime.utcnow() - timedelta(hours=stats_last_hours))]
         golden_record_stats = str((pd.to_datetime(filtered_data['mdmCounterForEntity']/1000, unit='ms') - pd.to_datetime(
             filtered_data['mdmStagingCounter']/1000, unit='ms')).describe().fillna(0)['mean'])
-        if stats_trace_log:    
-            datetime_logger('golden_record_stats', str(golden_record_stats))         
+        if stats_trace_log:
+            datetime_logger('golden_record_stats', str(golden_record_stats))
 
     data_model_data.append([tenant,
                             data_model,
@@ -309,16 +313,17 @@ def data_decoration_stats():
     statstracelog = settings['statstracelog']
     datetime_logger('statstracelog', str(statstracelog))
     ignorerejectedrecords = settings['ignorerejectedrecords']
-    datetime_logger('ignorerejectedrecords', str(ignorerejectedrecords))    
+    datetime_logger('ignorerejectedrecords', str(ignorerejectedrecords))
 
     for tenant in tenant_list.itertuples(index=False):
         if (carolorgfilter is None) or (len(carolorgfilter) > 0) and (tenant.orgname in carolorgfilter):
             if (caroltenantfilter is None) or (len(caroltenantfilter) > 0) and (tenant.tenantname in caroltenantfilter):
-                datetime_logger('org/tenant', f'{tenant.orgname}/{tenant.tenantname}')
+                datetime_logger(
+                    'org/tenant', f'{tenant.orgname}/{tenant.tenantname}')
                 with carol.switch_context(env_name=tenant.tenantname, org_name=tenant.orgname, app_name="techfinplatform") as carol_tenant:
                     techfin_data = get_techfin_data(
                         tenant.orgname, tenant.tenantname)
-                    dm_counter = 1    
+                    dm_counter = 1
                     for data_model in DATAMODEL_LIST:
                         datetime_logger(f'{dm_counter} - {data_model}')
                         data_model_data = get_data_model_data(
