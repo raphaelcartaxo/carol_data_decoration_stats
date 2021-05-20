@@ -250,7 +250,8 @@ def get_data_model_data(login, tenant, data_model, techfin_data, ignorerejectedr
                                 str(failed_lookup_records))
     else:
         rejected_records = -1
-        datetime_logger('rejected_data', str(rejected_records))
+        if stats_trace_log:
+            datetime_logger('rejected_data', str(rejected_records))
 
     if len(techfin_data) > 0:
         techfin_records = techfin_data.get(data_model, 0)
@@ -305,10 +306,10 @@ def data_decoration_stats():
     tenant_counter = 1
     dm_counter = 1
 
-    carolorgfilter = get_filter(settings['carolorgfilter'])
-    datetime_logger('carolorgfilter', carolorgfilter)
-    caroltenantfilter = get_filter(settings['caroltenantfilter'])
-    datetime_logger('caroltenantfilter', caroltenantfilter)
+    orgfilter = get_filter(settings['orgfilter'])
+    datetime_logger('orgfilter', orgfilter)
+    tenantfilter = get_filter(settings['tenantfilter'])
+    datetime_logger('tenantfilter', tenantfilter)
     datamodelfilter = get_filter(settings['datamodelfilter'])
     datetime_logger('datamodelfilter', datamodelfilter)
 
@@ -320,8 +321,8 @@ def data_decoration_stats():
     datetime_logger('ignorerejectedrecords', str(ignorerejectedrecords))
 
     for tenant in tenant_list.itertuples(index=False):
-        if (carolorgfilter is None) or (len(carolorgfilter) > 0) and (tenant.orgname in carolorgfilter):
-            if (caroltenantfilter is None) or (len(caroltenantfilter) > 0) and (tenant.tenantname in caroltenantfilter):
+        if (orgfilter is None) or (len(orgfilter) > 0) and (tenant.orgname in orgfilter):
+            if (tenantfilter is None) or (len(tenantfilter) > 0) and (tenant.tenantname in tenantfilter):
                 datetime_logger(f'{tenant_counter} | {tenant.orgname} | {tenant.tenantname}')
                 with carol.switch_context(env_name=tenant.tenantname, org_name=tenant.orgname, app_name="techfinplatform") as carol_tenant:
                     techfin_data = get_techfin_data(
