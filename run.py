@@ -45,43 +45,14 @@ sys.excepthook = handle_exception
 STATS_COLUMNS = [
     'tenant',
     'data_model',
+    'subscription_id',  
+    'event_date',
     'golden_records',
-    'last_updated_golden_record',
-    'rejected_records',
-    'last_updated_rejected_record',
-    'failed_lookup_records',
-    'last_updated_failed_lookup_record',
     'techfin_records',
     'records_diff',
-    'golden_record_stats',
-    'subscription_id']
-
-KEY_MAP = {
-    'apinvoiceaccounting': 'invoiceaccounting_id',
-    'apinvoice': 'invoice_id',
-    'apinvoiceinstallment': 'invoiceinstallment_id',
-    'apinvoicepayments': 'invoicepayments_id',
-    'arinvoiceaccounting': 'invoiceaccounting_id',
-    'arinvoicebra': 'invoicebra_id',
-    'arinvoice': 'invoice_id',
-    'arinvoiceinstallment': 'invoiceinstallment_id',
-    'arinvoiceorigin': '_id',
-    'arinvoicepartner': 'invoicepartner_id',
-    'arinvoicepayments': 'invoicepayments_id',
-    'arpaymentstype': 'transactiontype_id',
-    'cfbankbalance': '_id',
-    'company': 'uuid',
-    'fndbankaccount': 'bankaccount_id',
-    'mdaccount': 'account_id',
-    'mdbankaccount': 'bank_id',
-    'mdbusinesspartnerdocreference': '_id',
-    'mdbusinesspartner': 'businesspartner_id',
-    'mdbusinesspartnergroup': 'businesspartnergroup_id',
-    'mdcostcenter': 'costcenter_id',
-    'mdcurrency': 'currency_id',
-    'mddocreference': 'docreference_id',
-    'mdfinancialcategory': 'financialcategoryid',
-    'organization': 'uuid'}
+    'rejected_records',
+    'last_updated_golden_record',
+    'last_updated_rejected_record']
 
 DATA_MODEL_MAP = {
     "fndHierarchyOrganization": "company",
@@ -188,7 +159,7 @@ def get_dd_tenants(carol):
     tenant_list = get_dm(carol, 'caroltenant')
     tenant_list = tenant_list[(tenant_list.datadecoratio.fillna(False))][[
         'orgname', 'tenantname']]
-    return tenant_list.drop_duplicates(subset=['orgname', 'tenantname']).sort_values(['orgname', 'tenantname'])
+    return tenant_list.drop_duplicates(subset=['orgname', 'tenantname']).sort_values(['orgname', 'tenantname'], ascending=[True, False])
 
 
 def get_filter(setting):
@@ -210,76 +181,54 @@ def get_techfin_data(org, tenant):
     return techfin_data
 
 
-def get_data_model_data(login, tenant, data_model, techfin_data, ignorerejectedrecords=False, stats_last_hours=0, stats_trace_log=False):
+def get_data_model_data(login, tenant, data_model, techfin_data, skip_rejected_records=False, stats_trace_log=False):
     data_model_data = []
     golden_records = 0
     last_updated_golden_record = ''
     rejected_records = 0
     last_updated_rejected_record = ''
-    failed_lookup_records = 0
-    last_updated_failed_lookup_record = ''
     techfin_records = 0
     records_diff = 0
     subscription_id = ''
-    golden_record_stats = ''
-
-    golden_data = get_dm(login, data_model, columns=[
-                         'mdmId', 'mdmLastUpdated'])
-    golden_records = golden_data.mdmId.nunique()
-    last_updated_golden_record = golden_data.mdmLastUpdated.max()
-    if stats_trace_log:
-        datetime_logger('golden_data', str(golden_records))
+    event_date = datetime.utcnow()
 
     subscription_id = get_subscription_id(login, data_model)
     if stats_trace_log:
         datetime_logger('subscription_id', subscription_id)
 
-    if not(ignorerejectedrecords):
-        rejected_data = get_rejected(login, data_model)
-        rejected_records = rejected_data.shape[0]
-        if (rejected_records > 0):
-            last_updated_rejected_record = rejected_data.mdmLastUpdated.max()
-            if (rejected_records > 0) and ('mdmSourceType' in rejected_data.columns):
-                failed_lookup_data = rejected_data[rejected_data.mdmSourceType == 'DECORATION']
-                failed_lookup_records = failed_lookup_data.shape[0]
-                if (failed_lookup_records > 0):
-                    last_updated_failed_lookup_record = failed_lookup_data.mdmLastUpdated.max()
-            if stats_trace_log:
-                datetime_logger('rejected_data', str(rejected_records))
-                datetime_logger('failed_lookup_records',
-                                str(failed_lookup_records))
-    else:
-        rejected_records = -1
-        if stats_trace_log:
-            datetime_logger('rejected_data', str(rejected_records))
+    golden_data = get_dm(login, data_model, columns=['mdmId', 'mdmLastUpdated'])
+    golden_records = golden_data.mdmId.nunique()
+    last_updated_golden_record = golden_data.mdmLastUpdated.max()
+    if stats_trace_log:
+        datetime_logger('golden_data', str(golden_records))
 
     if len(techfin_data) > 0:
         techfin_records = techfin_data.get(data_model, 0)
         records_diff = golden_records - techfin_records
-        if stats_trace_log:
-            datetime_logger('techfin_records', str(techfin_records))
-            datetime_logger('records_diff', str(records_diff))
+    if stats_trace_log:
+        datetime_logger('techfin_records', str(techfin_records))
+        datetime_logger('records_diff', str(records_diff))
 
-    if stats_last_hours < 0:
-        filtered_data = golden_data[pd.to_datetime(
-            golden_data['mdmStagingCounter']/1000, unit='ms') >= (datetime.utcnow() - timedelta(hours=stats_last_hours))]
-        golden_record_stats = str((pd.to_datetime(filtered_data['mdmCounterForEntity']/1000, unit='ms') - pd.to_datetime(
-            filtered_data['mdmStagingCounter']/1000, unit='ms')).describe().fillna(0)['mean'])
-        if stats_trace_log:
-            datetime_logger('golden_record_stats', str(golden_record_stats))
+    if not(skip_rejected_records):
+        rejected_data = get_rejected(login, data_model)
+        rejected_records = rejected_data.shape[0]
+        if (rejected_records > 0):
+            last_updated_rejected_record = rejected_data.mdmLastUpdated.max()
+    else:
+        rejected_records = -1
+    if stats_trace_log:
+        datetime_logger('rejected_data', str(rejected_records))
 
     data_model_data.append([tenant,
                             data_model,
+                            subscription_id,
+                            event_date,
                             golden_records,
-                            last_updated_golden_record,
-                            rejected_records,
-                            last_updated_rejected_record,
-                            failed_lookup_records,
-                            last_updated_failed_lookup_record,
                             techfin_records,
-                            records_diff,
-                            str(golden_record_stats),
-                            subscription_id])
+                            records_diff,      
+                            rejected_records,                                               
+                            last_updated_golden_record,
+                            last_updated_rejected_record])
 
     df = pd.DataFrame(data_model_data, columns=STATS_COLUMNS)
     return df
@@ -295,12 +244,11 @@ def sync_tenant_data(carol, data_model_data):
                       max_workers=30,
                       connector_name='datadecoration',
                       step_size=1000,
-                      auto_create_schema=False,
+                      auto_create_schema=True,
                       crosswalk_auto_create=['tenant', 'data_model'])
 
 
 def data_decoration_stats():
-    datetime_logger('begin')
     carol = CarolAPI()
     tenant_list = get_dd_tenants(carol)
     tenant_counter = 1
@@ -312,31 +260,33 @@ def data_decoration_stats():
     datetime_logger('tenantfilter', tenantfilter)
     datamodelfilter = get_filter(settings['datamodelfilter'])
     datetime_logger('datamodelfilter', datamodelfilter)
+    skip_rejected_records = settings['skiprejectedrecords']
+    datetime_logger('skiprejectedrecords', str(skip_rejected_records))
+    stats_trace_log = settings['statstracelog']
+    datetime_logger('statstracelog', str(stats_trace_log))
 
-    stats_last_hours = settings['goldenrecordstatslasthours']
-    datetime_logger('goldenrecordstatslasthours', str(stats_last_hours))
-    statstracelog = settings['statstracelog']
-    datetime_logger('statstracelog', str(statstracelog))
-    ignorerejectedrecords = settings['ignorerejectedrecords']
-    datetime_logger('ignorerejectedrecords', str(ignorerejectedrecords))
 
     for tenant in tenant_list.itertuples(index=False):
         if (orgfilter is None) or (len(orgfilter) > 0) and (tenant.orgname in orgfilter):
             if (tenantfilter is None) or (len(tenantfilter) > 0) and (tenant.tenantname in tenantfilter):
-                datetime_logger(f'{tenant_counter} | {tenant.orgname} | {tenant.tenantname}')
+                datetime_logger(f'{tenant_counter} {tenant.orgname}: {tenant.tenantname}')
                 with carol.switch_context(env_name=tenant.tenantname, org_name=tenant.orgname, app_name="techfinplatform") as carol_tenant:
                     techfin_data = get_techfin_data(
                         tenant.orgname, tenant.tenantname)
                     dm_counter = 1
                     for data_model in DATAMODEL_LIST:
                         if (datamodelfilter is None) or (len(datamodelfilter) > 0) and (data_model in datamodelfilter):
-                            datetime_logger(f'{dm_counter} | {data_model}')
+                            datetime_logger(f'{tenant_counter}|{dm_counter} {data_model}')
                             data_model_data = get_data_model_data(
-                                carol_tenant, tenant.tenantname, data_model, techfin_data, ignorerejectedrecords, stats_last_hours, statstracelog)
+                                carol_tenant, 
+                                tenant.tenantname, 
+                                data_model, 
+                                techfin_data, 
+                                skip_rejected_records, 
+                                stats_trace_log)
                             sync_tenant_data(carol, data_model_data)
                             dm_counter += 1
-                tenant_counter += 1            
-    datetime_logger('end')
+                tenant_counter += 1
 
 
 if __name__ == '__main__':
