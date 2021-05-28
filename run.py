@@ -244,7 +244,7 @@ def sync_tenant_data(carol, data_model_data):
                       max_workers=30,
                       connector_name='datadecoration',
                       step_size=1000,
-                      auto_create_schema=True,
+                      auto_create_schema=False,
                       crosswalk_auto_create=['tenant', 'data_model'])
 
 
