@@ -159,7 +159,7 @@ def get_dd_tenants(carol):
     tenant_list = get_dm(carol, 'caroltenant')
     tenant_list = tenant_list[(tenant_list.datadecoratio.fillna(False))][[
         'orgname', 'tenantname']]
-    return tenant_list.drop_duplicates(subset=['orgname', 'tenantname']).sort_values(['orgname', 'tenantname'], ascending=[True, False])
+    return tenant_list.drop_duplicates(subset=['orgname', 'tenantname']).sort_values(['orgname', 'tenantname'], ascending=[True, True])
 
 
 def get_filter(setting):
@@ -256,12 +256,19 @@ def data_decoration_stats():
 
     orgfilter = get_filter(settings['orgfilter'])
     datetime_logger('orgfilter', orgfilter)
+
     tenantfilter = get_filter(settings['tenantfilter'])
     datetime_logger('tenantfilter', tenantfilter)
-    datamodelfilter = get_filter(settings['datamodelfilter'])
+
+    tenantskipfilter = get_filter(settings['tenantskipfilter'])
+    datetime_logger('tenantskipfilter', tenantskipfilter)
+
+    datamodelfilter = get_filter(settings['datamodelfilter'])    
     datetime_logger('datamodelfilter', datamodelfilter)
+
     skip_rejected_records = settings['skiprejectedrecords']
     datetime_logger('skiprejectedrecords', str(skip_rejected_records))
+
     stats_trace_log = settings['statstracelog']
     datetime_logger('statstracelog', str(stats_trace_log))
 
@@ -269,6 +276,10 @@ def data_decoration_stats():
     for tenant in tenant_list.itertuples(index=False):
         if (orgfilter is None) or (len(orgfilter) > 0) and (tenant.orgname in orgfilter):
             if (tenantfilter is None) or (len(tenantfilter) > 0) and (tenant.tenantname in tenantfilter):
+                if (tenantskipfilter is not None):
+                    if (len(tenantskipfilter) > 0) and (tenant.tenantname in tenantskipfilter):
+                        datetime_logger(f'<skip> {tenant.orgname}: {tenant.tenantname}')
+                        continue  
                 datetime_logger(f'{tenant_counter} {tenant.orgname}: {tenant.tenantname}')
                 with carol.switch_context(env_name=tenant.tenantname, org_name=tenant.orgname, app_name="techfinplatform") as carol_tenant:
                     techfin_data = get_techfin_data(
