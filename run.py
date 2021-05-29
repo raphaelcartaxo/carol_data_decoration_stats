@@ -266,12 +266,14 @@ def data_decoration_stats():
     datamodelfilter = get_filter(settings['datamodelfilter'])    
     datetime_logger('datamodelfilter', datamodelfilter)
 
+    datamodelskipfilter = get_filter(settings['datamodelskipfilter'])    
+    datetime_logger('datamodelskipfilter', datamodelskipfilter)    
+
     skip_rejected_records = settings['skiprejectedrecords']
     datetime_logger('skiprejectedrecords', str(skip_rejected_records))
 
     stats_trace_log = settings['statstracelog']
     datetime_logger('statstracelog', str(stats_trace_log))
-
 
     for tenant in tenant_list.itertuples(index=False):
         if (orgfilter is None) or (len(orgfilter) > 0) and (tenant.orgname in orgfilter):
@@ -282,11 +284,14 @@ def data_decoration_stats():
                         continue  
                 datetime_logger(f'{tenant_counter} {tenant.orgname}: {tenant.tenantname}')
                 with carol.switch_context(env_name=tenant.tenantname, org_name=tenant.orgname, app_name="techfinplatform") as carol_tenant:
-                    techfin_data = get_techfin_data(
-                        tenant.orgname, tenant.tenantname)
+                    techfin_data = get_techfin_data(tenant.orgname, tenant.tenantname)
                     dm_counter = 1
                     for data_model in DATAMODEL_LIST:
                         if (datamodelfilter is None) or (len(datamodelfilter) > 0) and (data_model in datamodelfilter):
+                            if (datamodelskipfilter is not None):
+                                if (len(datamodelskipfilter) > 0) and (data_model in datamodelskipfilter):
+                                    datetime_logger(f'<skip> {data_model}')
+                                    continue 
                             datetime_logger(f'{tenant_counter}|{dm_counter} {data_model}')
                             data_model_data = get_data_model_data(
                                 carol_tenant, 
