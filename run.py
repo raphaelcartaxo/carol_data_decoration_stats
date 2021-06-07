@@ -25,10 +25,10 @@ carol = CarolHandler(login)
 carol.setLevel(logging.INFO)
 logger.addHandler(carol)
 
-app = Apps(login)
-settings = app.get_settings(app_name='datadecorationstats')
-os.environ['TECHFINCLIENTID'] = settings['techfinclientid']
-os.environ['TECHFINCLIENTSECRET'] = settings['techfinclientsecret']
+# app = Apps(login)
+# settings = app.get_settings(app_name='datadecorationstats')
+# os.environ['TECHFINCLIENTID'] = settings['techfinclientid']
+# os.environ['TECHFINCLIENTSECRET'] = settings['techfinclientsecret']
 
 
 def handle_exception(exc_type, exc_value, exc_traceback):
@@ -155,11 +155,11 @@ def get_rejected(carol, dm_name, max_hits=None, max_workers=30, file_pattern=Non
     return df
 
 
-def get_dd_tenants(carol):
+def get_dd_tenants(carol, orderbyascending=True):
     tenant_list = get_dm(carol, 'caroltenant')
     tenant_list = tenant_list[(tenant_list.datadecoratio.fillna(False))][[
         'orgname', 'tenantname']]
-    return tenant_list.drop_duplicates(subset=['orgname', 'tenantname']).sort_values(['orgname', 'tenantname'], ascending=[True, True])
+    return tenant_list.drop_duplicates(subset=['orgname', 'tenantname']).sort_values(['orgname', 'tenantname'], ascending=[True, orderbyascending])
 
 
 def get_filter(setting):
@@ -250,9 +250,11 @@ def sync_tenant_data(carol, data_model_data):
 
 def data_decoration_stats():
     carol = CarolAPI()
-    tenant_list = get_dd_tenants(carol)
-    tenant_counter = 1
-    dm_counter = 1
+
+    app = Apps(login)
+    settings = app.get_settings(app_name='datadecorationstats')
+    os.environ['TECHFINCLIENTID'] = settings['techfinclientid']
+    os.environ['TECHFINCLIENTSECRET'] = settings['techfinclientsecret']
 
     orgfilter = get_filter(settings['orgfilter'])
     datetime_logger('orgfilter', orgfilter)
@@ -260,24 +262,28 @@ def data_decoration_stats():
     tenantfilter = get_filter(settings['tenantfilter'])
     datetime_logger('tenantfilter', tenantfilter)
 
-    tenantskipfilter = get_filter(settings['tenantskipfilter'])
-    datetime_logger('tenantskipfilter', tenantskipfilter)
+    tenantorderbyascending = settings['tenantorderbyascending']
+    datetime_logger('tenantorderbyascending', str(tenantorderbyascending))
 
     datamodelfilter = get_filter(settings['datamodelfilter'])    
     datetime_logger('datamodelfilter', datamodelfilter)
 
-    datamodelskipfilter = get_filter(settings['datamodelskipfilter'])    
-    datetime_logger('datamodelskipfilter', datamodelskipfilter)    
-
     skip_rejected_records = settings['skiprejectedrecords']
     datetime_logger('skiprejectedrecords', str(skip_rejected_records))
-
+    
     stats_trace_log = settings['statstracelog']
     datetime_logger('statstracelog', str(stats_trace_log))
+
+    tenant_list = get_dd_tenants(carol, tenantorderbyascending)
+    tenant_counter = 1
+    dm_counter = 1
 
     for tenant in tenant_list.itertuples(index=False):
         if (orgfilter is None) or (len(orgfilter) > 0) and (tenant.orgname in orgfilter):
             if (tenantfilter is None) or (len(tenantfilter) > 0) and (tenant.tenantname in tenantfilter):
+                settings = app.get_settings(app_name='datadecorationstats')
+                tenantskipfilter = get_filter(settings['tenantskipfilter'])
+                datetime_logger('tenantskipfilter', tenantskipfilter)
                 if (tenantskipfilter is not None):
                     if (len(tenantskipfilter) > 0) and (tenant.tenantname in tenantskipfilter):
                         datetime_logger(f'<skip> {tenant.orgname}: {tenant.tenantname}')
@@ -288,6 +294,9 @@ def data_decoration_stats():
                     dm_counter = 1
                     for data_model in DATAMODEL_LIST:
                         if (datamodelfilter is None) or (len(datamodelfilter) > 0) and (data_model in datamodelfilter):
+                            settings = app.get_settings(app_name='datadecorationstats')
+                            datamodelskipfilter = get_filter(settings['datamodelskipfilter'])
+                            datetime_logger('datamodelskipfilter', datamodelskipfilter)                            
                             if (datamodelskipfilter is not None):
                                 if (len(datamodelskipfilter) > 0) and (data_model in datamodelskipfilter):
                                     datetime_logger(f'<skip> {data_model}')
