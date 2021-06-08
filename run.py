@@ -165,7 +165,7 @@ def get_dd_tenants(carol, orderbyascending=True):
 def get_filter(setting):
     filter = None
     if setting != '':
-        filter = set(setting.split(','))
+        filter = set(setting.replace(' ', '').split(','))
     return filter
 
 
